@@ -1,0 +1,211 @@
+Task1
+    Pentru fiecare tip de paranteza am retinut numarul de aparitii in mai multe contoare astfel:
+    xor eax, eax 
+
+    ; contor paranteze []
+    xor ecx, ecx
+
+    ; contor paranteze ()
+    xor edx, edx 
+
+    ; contor paranteze {}
+    xor edi, edi
+
+    Pe masura ce inaintez in stiva, daca gasesc paranteza deschisa adun
+    la contorul corespunzator parantezei 1, iar daca intalnesc paranteza
+    scad contorul corespunzator ei.
+
+    Un exemplu aici:
+    
+    ; 91 e codul pentru [
+    cmp ebx, 91
+    je inc_1    ; aici cresc contorul care retine nr de paranteze []
+
+    ; 93 e codul pentru ]
+    cmp ebx, 93
+    je dec_1    ; aici scad contorul care retine nr de paranteze
+
+    In final, daca toate contoarele mele sunt 0, adica am atatea paranteze
+    deschise cate paranteze inchise de acelasi tip, inseamna ca returnez 1.
+    Altfel, returnez 0, salvand in eax 1 sau 0 la final.
+
+Task2
+    - Subtask1
+    Pentru qsort am folosit urmatorii registri:
+        eax = low
+        ebx = high
+        esi = arr
+        ecx = rezultatul functiei partitie, pe care l-am trimis ca
+        parametru de fiecare data cand apelam functia partitie
+        edx = pivotul salvat
+
+        Functia mea in C am preluat-o dupa acest site:
+        https://www.geeksforgeeks.org/quick-sort/
+
+        Incepeam apelul recursiv atata timp cat eax < ebx
+
+        cmp eax, ebx
+        jl apel_recursiv
+        jmp end
+
+        In apelul recursiv aflam pivotul, apoi apelam de doua ori functia 
+        qsort astfel:
+
+        push eax
+        push ebx
+        xor ecx, ecx
+        push esi
+        push ecx
+        call partitie   ; partitie(arr, low, high)
+        xor edx, edx
+        mov edx, ecx    ; in edx e pivotul
+
+        Apoi, apelez mai intai pentru partea din stanga
+        push edx
+        push eax
+        push esi
+        call quick_sort     ; quick_sort(arr, low, pi - 1)
+        ; 3 parametri => inaintez in stiva cu 3 * 4
+        add esp, 12
+
+        Apelez apoi pentru partea din dreapta
+        push ebx
+        push edx
+        push esi
+        call quick_sort     ; quick_sort(arr, pi + 1, high)
+        ; 3 parametri => inaintez in stiva cu 3 * 4
+        add esp, 12
+
+    - Subtask2
+    Pentru bsearch am folosit urmatorii registri:
+        edi = low
+        ebx = high
+        ecx = vectorul
+        edx = elementul de cautat
+
+        Conditia de while este:
+        cmp ebx, edi
+        jg end
+
+        In eax retin mid, apoi in functie de el actualizez low si high
+         mov esi, [ecx + 4 * eax]
+        cmp esi, edx
+        je end
+        jl act_low
+        jmp act_high
+
+        act_low:
+            xor ebx, ebx
+            mov ebx, eax
+            inc ebx
+            jmp call_binary
+
+        act_high:
+            xor edi, edi
+            mov edi, eax
+            dec edi
+
+        In final apelam functia recursiva binary_search:
+        call_binary:
+        push edi
+        push ebx
+        call binary_search
+        pop ebx
+        pop edi
+
+        Rezultatul il salvam in eax astfel:
+        end:
+            ; 0 = eax a ramas neschimbat
+            cmp eax, 0
+            jne final
+            ; -1 = nu s-a gasit elementul
+            mov eax, -1
+
+        final:
+            push eax
+            ;; restore the preserved registers
+            pop eax
+            pop edi
+            pop ebx
+            leave
+            ret
+
+Task Bonus
+    1. Map
+    Pentru acest task am folosit urmatorii registri:
+    ; rdi = dest
+    ; rsi = source
+    ; rdx = len
+    ; rcx = func
+    ; rbx = 0
+
+    Incep for-ul astfel:
+    push rdi
+    xor rdi, rdi    
+    
+    ; in rdi salvez dest[i], si dupa apelez functia
+    mov rdi, [rsi + 8 * rbx]
+    call rcx
+    pop rdi
+
+    Acum salvez ce mi-a returnat functia in sour[i], astfel:
+    mov [rdi + 8 * rbx], rax
+
+    Continui loop-ul pana cand rbx ajunge la rdx
+    inc rbx
+    cmp rbx, rdx
+    jl for_loop
+
+    2. Reduce
+    Pentru acest task am folosit urmatorii registri:
+
+    ; dest
+    mov r10, rdi
+
+     ; src
+    mov r11, rsi
+
+    Am avut nevoie sa-i retin in registrii r10 si r11 pentru ca in loop
+    aveam nevoie de rdi si rsi ca sa apelez functia mea, si dupa ce apelam functia
+    mi s-ar fi modificat adresele. Astfel, ca sa nu am seg_fault, i-am pastrat in
+    alti registrii sa ma folosesc de ei
+
+    ; n
+    push rdx 
+
+    ; acc_init
+    push rcx
+
+    ; func
+    push r8 
+
+    Incepe parcurgerea mea in vector, iar in rsi retin src[i], in rdi retin acc,
+    apoi apelez functia.
+    xor rsi, rsi
+    ; 8 = sizeof(int) pe 64 biti
+    mov rsi, [r11 + 8 * rbx]
+    call r8
+
+    Dupa ce am apelat-o, salvez in rdi acc-ul actualizat, si continui cu
+    parcurgerea in loop astfel:
+    inc rbx
+    pop rdx
+    cmp rbx, rdx
+    jl for_loopR
+
+    In final, salvez in rax acc-ul actualizat(rdi) astfel:
+    pop rbx
+    pop r8
+    pop rcx
+    pop rdx
+    pop r11
+    mov rax, rdi
+    pop r10
+    leave
+    ret
+
+
+
+
+
+
